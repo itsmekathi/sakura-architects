@@ -1,11 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
-  <style>.c{fill:#1f1d1b}@media (prefers-color-scheme:dark){.c{fill:#ede7df}}</style>
-  <g transform="translate(20 20)" fill="#e8b4b8">
-    <path d="M0 -2 C -5 -6 -6 -13 -2 -17 L 0 -15 L 2 -17 C 6 -13 5 -6 0 -2 Z"/>
-    <path transform="rotate(72)" d="M0 -2 C -5 -6 -6 -13 -2 -17 L 0 -15 L 2 -17 C 6 -13 5 -6 0 -2 Z"/>
-    <path transform="rotate(144)" d="M0 -2 C -5 -6 -6 -13 -2 -17 L 0 -15 L 2 -17 C 6 -13 5 -6 0 -2 Z"/>
-    <path transform="rotate(216)" d="M0 -2 C -5 -6 -6 -13 -2 -17 L 0 -15 L 2 -17 C 6 -13 5 -6 0 -2 Z"/>
-    <path transform="rotate(288)" d="M0 -2 C -5 -6 -6 -13 -2 -17 L 0 -15 L 2 -17 C 6 -13 5 -6 0 -2 Z"/>
-    <circle class="c" r="1.6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <path id="p" d="M0,-3.2 C-5.4,-5.6 -8.3,-12.2 -5.1,-17.6 C-4.1,-19.3 -2.4,-20.3 -1.2,-19.7 L0,-17.2 L1.2,-19.7 C2.4,-20.3 4.1,-19.3 5.1,-17.6 C8.3,-12.2 5.4,-5.6 0,-3.2 Z"/>
+  </defs>
+  <rect width="48" height="48" rx="4" fill="#a8586c"/>
+  <g transform="translate(24 24.8) rotate(-8) scale(0.86)" fill="#f7f3ee">
+    <use href="#p"/><use href="#p" transform="rotate(72)"/><use href="#p" transform="rotate(144)"/><use href="#p" transform="rotate(216)"/><use href="#p" transform="rotate(288)"/>
   </g>
 </svg>

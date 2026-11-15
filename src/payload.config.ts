@@ -54,7 +54,13 @@ export default buildConfig({
   admin: {
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },
-    meta: { titleSuffix: ' · Sakura Architects' },
+    meta: { titleSuffix: ' · Sakura Architects', icons: [{ rel: 'icon', type: 'image/svg+xml', url: '/icon.svg' }] },
+    components: {
+      graphics: {
+        Logo: '/components/admin/AdminBrand#AdminLogo',
+        Icon: '/components/admin/AdminBrand#AdminIcon',
+      },
+    },
   },
   collections: [Inquiries, Projects, Stories, Testimonials, Posts, Services, Team, Jobs, Media, Users],
   globals: [SiteSettings],

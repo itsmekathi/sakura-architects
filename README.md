@@ -60,7 +60,9 @@ src/
 ```
 
 Design tokens (washi paper, sumi ink, stone, sakura accent, plus dark mode) live in `src/app/(frontend)/globals.css`.
-Fonts are Shippori Mincho (headings) and Inter (body). Swap the placeholder petal mark in `src/components/Logo.tsx` for the real logo.
+Fonts are Shippori Mincho (headings) and Inter (body).
+
+**Brand:** the logo is a hanko-style seal (deep rose `#a8586c`) with a cherry blossom cut out, next to a stacked SAKURA / ARCHITECTS wordmark. It is drawn in code in `src/components/Logo.tsx`. Ready-made files for print, social and email signatures are in `public/brand/` (`sakura-mark.svg`, `sakura-mark-512.png`, `sakura-logo.png`). The browser icon (`src/app/icon.svg`), phone home-screen icon (`src/app/apple-icon.png`) and link-preview image (`src/app/(frontend)/opengraph-image.png`) use the same mark, and the admin panel shows it too.
 
 ## Scripts
 
