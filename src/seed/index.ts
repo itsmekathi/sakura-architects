@@ -13,7 +13,9 @@ import config from '../payload.config'
 import { lexical } from './lexical'
 import { seedStories } from './stories'
 
-const ctx = { disableRevalidate: true }
+// A fresh object per call: Payload uses the passed context object as-is, and the cloud-storage plugin
+// stores per-upload state on it. A shared object made every upload after the first one silently skip Blob.
+const ctx = () => ({ disableRevalidate: true })
 
 const UNSPLASH = (id: string, w = 1800) => `https://images.unsplash.com/photo-${id}?w=${w}&q=75&fm=jpg&fit=crop`
 
@@ -41,14 +43,14 @@ async function image(payload: Payload, id: string, alt: string) {
     collection: 'media',
     data: { alt, credit: 'Photo: Unsplash (placeholder)' },
     file: { data, mimetype: 'image/jpeg', name: `placeholder-${id.slice(0, 13)}.jpg`, size: data.length },
-    context: ctx,
+    context: ctx(),
   })
   return doc.id
 }
 
 async function clear(payload: Payload) {
   for (const collection of ['stories', 'testimonials', 'projects', 'team', 'services', 'posts', 'jobs', 'media'] as const) {
-    await payload.delete({ collection, where: { id: { exists: true } }, context: ctx })
+    await payload.delete({ collection, where: { id: { exists: true } }, context: ctx() })
   }
 }
 
@@ -260,7 +262,7 @@ async function seed() {
     const { cover, gallery, ...data } = p
     await payload.create({
       collection: 'projects',
-      context: ctx,
+      context: ctx(),
       data: {
         ...(data as any),
         cover: await image(payload, cover, `${p.title}, exterior view`),
@@ -277,7 +279,7 @@ async function seed() {
   for (const [i, m] of team.entries()) {
     await payload.create({
       collection: 'team',
-      context: ctx,
+      context: ctx(),
       data: {
         name: m.name,
         role: m.role,
@@ -292,7 +294,7 @@ async function seed() {
   for (const [i, s] of services.entries()) {
     await payload.create({
       collection: 'services',
-      context: ctx,
+      context: ctx(),
       data: {
         title: s.title,
         summary: s.summary,
@@ -307,7 +309,7 @@ async function seed() {
   for (const p of posts) {
     await payload.create({
       collection: 'posts',
-      context: ctx,
+      context: ctx(),
       data: {
         title: p.title,
         excerpt: p.excerpt,
@@ -320,7 +322,7 @@ async function seed() {
 
   await payload.create({
     collection: 'jobs',
-    context: ctx,
+    context: ctx(),
     data: {
       title: 'Project Architect',
       location: 'Studio, hybrid',
@@ -333,7 +335,7 @@ async function seed() {
   payload.logger.info('Site settings…')
   await payload.updateGlobal({
     slug: 'site-settings',
-    context: ctx,
+    context: ctx(),
     data: {
       heroEyebrow: 'Architecture · Civil Engineering · Interiors',
       heroTitle: 'Quiet buildings,\nmade to last.',

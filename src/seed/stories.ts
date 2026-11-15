@@ -1,7 +1,9 @@
 import type { Payload } from 'payload'
 import { lexical } from './lexical'
 
-const ctx = { disableRevalidate: true }
+// A fresh object per call: Payload uses the passed context object as-is, and the cloud-storage plugin
+// stores per-upload state on it. A shared object made every upload after the first one silently skip Blob.
+const ctx = () => ({ disableRevalidate: true })
 
 const stories = [
   {
@@ -136,7 +138,7 @@ const testimonials = [
 export async function seedStories(payload: Payload, { replace = false } = {}) {
   if (replace) {
     for (const collection of ['stories', 'testimonials'] as const) {
-      await payload.delete({ collection, where: { id: { exists: true } }, context: ctx })
+      await payload.delete({ collection, where: { id: { exists: true } }, context: ctx() })
     }
   }
 
@@ -146,7 +148,7 @@ export async function seedStories(payload: Payload, { replace = false } = {}) {
   for (const st of stories) {
     await payload.create({
       collection: 'stories',
-      context: ctx,
+      context: ctx(),
       data: {
         title: st.title,
         client: st.client,
@@ -165,7 +167,7 @@ export async function seedStories(payload: Payload, { replace = false } = {}) {
     const { project, ...rest } = t
     await payload.create({
       collection: 'testimonials',
-      context: ctx,
+      context: ctx(),
       data: { ...rest, order: i, project: bySlug.get(project) },
     })
   }

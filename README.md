@@ -112,7 +112,7 @@ git push -u origin main
 ### 3. Add the database and file storage
 In the project: **Storage** tab:
 1. **Create Database → Neon** (Postgres). Pick a region near your visitors and connect it to the project for all environments. This adds `DATABASE_URL` and related variables.
-2. **Create → Blob**, connect it to the project. This adds `BLOB_READ_WRITE_TOKEN`.
+2. **Create → Blob**, set **Access: Public** (the Payload storage plugin cannot use private stores, and access cannot be changed after creation), and connect it to the project. This adds `BLOB_READ_WRITE_TOKEN`.
 3. **Deployments → ⋯ on the latest → Redeploy.** The build now creates the tables and goes live at `https://<project>.vercel.app`.
 
 ### 4. Load content
