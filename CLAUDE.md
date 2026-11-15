@@ -11,23 +11,25 @@ Next.js 16 has breaking changes vs. older versions (e.g. `params` is a `Promise`
 ## Commands
 
 ```bash
-npm run dev                 # http://localhost:3000, admin at /admin
-npm run build               # also type-checks (includes tests/), so test typing errors fail the build
-npm run typecheck           # tsc --noEmit
-npm run lint
-npm run generate:types      # REQUIRED after any collection/global field change → src/payload-types.ts
-npm run generate:importmap  # only needed if custom admin components are added
-npm run seed                # wipes + recreates all content collections and media (keeps users & inquiries)
-npm run seed -- stories     # recreates only stories + testimonials (non-destructive to other content)
+pnpm dev                 # http://localhost:3000, admin at /admin
+pnpm build               # also type-checks (includes tests/), so test typing errors fail the build
+pnpm typecheck           # tsc --noEmit
+pnpm lint
+pnpm generate:types      # REQUIRED after any collection/global field change → src/payload-types.ts
+pnpm generate:importmap  # only needed if custom admin components are added
+pnpm seed                # wipes + recreates all content collections and media (keeps users & inquiries)
+pnpm seed stories        # recreates only stories + testimonials (non-destructive to other content)
 
-npm run test:int                                                       # vitest, tests/int/**/*.int.spec.ts
-npx vitest run --config ./vitest.config.mts tests/int/api.int.spec.ts -t "records a reply"   # single test
-npm run test:e2e            # Playwright (tests/e2e); expects the site running on :3000
+pnpm test:int                                                       # vitest, tests/int/**/*.int.spec.ts
+pnpm exec vitest run --config ./vitest.config.mts tests/int/api.int.spec.ts -t "records a reply"   # single test
+pnpm test:e2e            # Playwright (tests/e2e); expects the site running on :3000
 ```
+
+Package manager: **pnpm** (pinned via `packageManager` in `package.json`; use pnpm, not npm, so `pnpm-lock.yaml` stays the only lockfile). pnpm settings live in `pnpm-workspace.yaml`, not in `package.json`, because pnpm 11+ ignores the `pnpm` field there. Packages allowed to run install scripts (`sharp`, `esbuild`, `unrs-resolver`) are listed twice: `allowBuilds` for pnpm 11+, and `onlyBuiltDependencies` for older pnpm such as Vercel's default. If a newly added dependency needs a build script, add it to both.
 
 Gotchas:
 - **Integration tests use the real `sakura.db`** (no separate test DB). They create and clean up their own inquiries.
-- **Don't run `npm run build` while `npm run dev` is running.** Both write `.next/`, and the dev server starts throwing errors afterwards. Stop dev first; if it's already broken, `rm -rf .next` and restart.
+- **Don't run `pnpm build` while `pnpm dev` is running.** Both write `.next/`, and the dev server starts throwing errors afterwards. Stop dev first; if it's already broken, `rm -rf .next` and restart.
 - The seed runs through `tsx`, not `payload run`, because `payload run` silently does nothing here. In dev, Payload auto-pushes schema changes to SQLite. Running the seed right after a schema change while dev is pushing the same change can fail with `SQLITE_ERROR`; just re-run it.
 - With no `SMTP_HOST`, Payload logs emails to the console instead of sending ("Email attempted without being configured…"). That's the expected local behaviour.
 - Node engine warnings (`EBADENGINE`, wants ≥24.22) are noise on the current machine; everything works.
@@ -64,11 +66,11 @@ Tokens are CSS variables in `src/app/(frontend)/globals.css`, mapped into Tailwi
 - `BLOB_READ_WRITE_TOKEN` enables `vercelBlobStorage` for `media`, with `clientUploads` and direct CDN URLs (allowed in `next.config.ts` `remotePatterns`). Without it, files go to `./media`.
 - `src/lib/site-url.ts` resolves the public URL (`NEXT_PUBLIC_SERVER_URL`, then `VERCEL_PROJECT_PRODUCTION_URL`, then localhost).
 
-Postgres runs with `push: false`, so **schema changes need a migration**: after editing fields run `npm run generate:types` and `npm run migrate:create <name>`, then commit `src/migrations/*`. This script injects a placeholder Postgres URL and needs no database. Vercel's `vercel-build` script runs `payload migrate` before `next build`. Locally SQLite still auto-pushes in dev.
+Postgres runs with `push: false`, so **schema changes need a migration**: after editing fields run `pnpm generate:types` and `pnpm migrate:create <name>`, then commit `src/migrations/*`. This script injects a placeholder Postgres URL and needs no database. Vercel's `vercel-build` script runs `payload migrate` before `next build`. Locally SQLite still auto-pushes in dev.
 
-The admin import map must include the Blob client-upload handler even though it's disabled locally. The `generate:importmap` script therefore injects a placeholder token, which must match `vercel_blob_rw_<id>_<rand>`. Always regenerate through the npm script, never with a bare `payload generate:importmap`.
+The admin import map must include the Blob client-upload handler even though it's disabled locally. The `generate:importmap` script therefore injects a placeholder token, which must match `vercel_blob_rw_<id>_<rand>`. Always regenerate through the package.json script, never with a bare `payload generate:importmap`.
 
-`npm run seed:vercel` seeds the hosted DB/Blob from `.env.vercel` (gitignored). **Never reuse one `context` object across Local API calls** (the seed uses `ctx()` for a fresh one each time). Payload uses the passed object as-is, the cloud-storage plugin stores per-upload state on it, and a shared object made every Blob upload after the first one silently skip. `--env-file` values take precedence over `.env`. The frontend layout sets `revalidate = 3600` as a safety net (e.g. for content scheduled with a future `publishedAt`).
+`pnpm seed:vercel` seeds the hosted DB/Blob from `.env.vercel` (gitignored). **Never reuse one `context` object across Local API calls** (the seed uses `ctx()` for a fresh one each time). Payload uses the passed object as-is, the cloud-storage plugin stores per-upload state on it, and a shared object made every Blob upload after the first one silently skip. `--env-file` values take precedence over `.env`. The frontend layout sets `revalidate = 3600` as a safety net (e.g. for content scheduled with a future `publishedAt`).
 
 ## Staff vs. site visitors (auth)
 
@@ -78,7 +80,7 @@ There are two auth collections: `users` (staff, admin panel) and `visitors` (pub
 - Payload ignores the cookie on requests without an `Origin` (or `Sec-Fetch-Site`) header from an allowed origin. Browsers send them, but scripts and tests don't, so non-browser clients must send `Authorization: JWT <token>`.
 - Use `getVisitor()` in server components and actions (returns null for staff cookies). Pages reading it are dynamic (`/contact`, `/account/*`). The header's `AccountLink` checks `/api/visitors/me` client-side, so other pages stay static.
 - The contact flow: choice panel → form → a `<dialog>` consent step (`components/ContactForm.tsx`) → `contact/actions.ts`. Consent is validated in zod and at collection level (`consent.contact` / `consent.dataNotice` required on create), and the wording from Site settings is snapshotted onto the enquiry. Default texts live in `src/lib/consent.ts`.
-- Local SQLite gotcha: drizzle's dev push fails (`no such column` on `INSERT INTO __new_<table>`) when a schema change both rebuilds a table (e.g. dropping NOT NULL) and adds columns. Reset the local DB (`rm sakura.db && rm -rf media && npm run seed`) rather than patching it. Postgres uses migrations and is unaffected.
+- Local SQLite gotcha: drizzle's dev push fails (`no such column` on `INSERT INTO __new_<table>`) when a schema change both rebuilds a table (e.g. dropping NOT NULL) and adds columns. Reset the local DB (`rm sakura.db && rm -rf media && pnpm seed`) rather than patching it. Postgres uses migrations and is unaffected.
 
 ## Environment
 

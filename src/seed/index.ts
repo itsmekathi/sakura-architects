@@ -1,8 +1,8 @@
 /**
- * Seeds placeholder content. Run with:  npm run seed
+ * Seeds placeholder content. Run with:  pnpm seed
  *
  * It clears and recreates projects, stories, testimonials, team, services, posts, jobs and media,
- * and fills the site settings. `npm run seed -- stories` only (re)creates stories and testimonials.
+ * and fills the site settings. `pnpm seed stories` only (re)creates stories and testimonials.
  * Users and inquiries are left untouched. Placeholder photos come from Unsplash. If a download fails,
  * a flat colour placeholder is generated instead, so the seed also works offline.
  */

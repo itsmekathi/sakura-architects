@@ -7,15 +7,17 @@ Website and CMS for Sakura Architects, built with **Next.js 16 + Payload CMS 3**
 
 ## Quick start
 
+This project uses **pnpm**, pinned in `package.json` (`packageManager`). Run `corepack enable` once to get that exact version, or install pnpm 9+ yourself.
+
 ```bash
 cp .env.example .env      # then set PAYLOAD_SECRET to a long random string
-npm install
-npm run seed              # placeholder projects, team, services, posts + an admin user
-npm run dev               # http://localhost:3000, admin at /admin
+pnpm install
+pnpm seed                 # placeholder projects, team, services, posts + an admin user
+pnpm dev                  # http://localhost:3000, admin at /admin
 ```
 
 The seed creates `admin@example.com` / `change-me-now` (override with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`) **only if no users exist**. Change the password after the first login.
-Re-running `npm run seed` replaces projects, team, services, posts, jobs and media. It does not touch users or enquiries.
+Re-running `pnpm seed` replaces projects, team, services, posts, jobs and media. It does not touch users or enquiries.
 
 ## Managing content
 
@@ -61,7 +63,7 @@ Optional. The Google button only appears once these are set.
    - `https://sakuraarchitects.vercel.app/auth/google/callback`
    - `http://localhost:3000/auth/google/callback`
    (add your custom domain's `/auth/google/callback` later).
-4. Copy the **Client ID** and **Client secret** into Vercel (**Settings → Environment Variables**, as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`) and into your local `.env`, then redeploy / restart `npm run dev`.
+4. Copy the **Client ID** and **Client secret** into Vercel (**Settings → Environment Variables**, as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`) and into your local `.env`, then redeploy / restart `pnpm dev`.
 
 ### Roles
 
@@ -89,15 +91,15 @@ Fonts are Shippori Mincho (headings) and Inter (body).
 
 | Script | |
 |---|---|
-| `npm run dev` / `build` / `start` | Next.js |
-| `npm run seed` | Load placeholder content (replaces content) |
-| `npm run seed -- stories` | Re-create only success stories + testimonials |
-| `npm run seed:vercel` | Seed the hosted site using credentials in `.env.vercel` |
-| `npm run generate:types` | Regenerate `src/payload-types.ts` after changing collections |
-| `npm run migrate:create <name>` | Create a Postgres migration after changing collections (no database needed) |
-| `npm run generate:importmap` | Regenerate the admin import map (needed after adding admin components or plugins) |
-| `npm run test:int` | Integration tests (inquiry access + reply flow) |
-| `npm run typecheck` | TypeScript |
+| `pnpm dev` / `build` / `start` | Next.js |
+| `pnpm seed` | Load placeholder content (replaces content) |
+| `pnpm seed stories` | Re-create only success stories + testimonials |
+| `pnpm seed:vercel` | Seed the hosted site using credentials in `.env.vercel` |
+| `pnpm generate:types` | Regenerate `src/payload-types.ts` after changing collections |
+| `pnpm migrate:create <name>` | Create a Postgres migration after changing collections (no database needed) |
+| `pnpm generate:importmap` | Regenerate the admin import map (needed after adding admin components or plugins) |
+| `pnpm test:int` | Integration tests (inquiry access + reply flow) |
+| `pnpm typecheck` | TypeScript |
 
 ## Deploying (Vercel + Neon Postgres + Vercel Blob)
 
@@ -146,8 +148,8 @@ Either open `https://<project>.vercel.app/admin` and create your account (the fi
    SEED_ADMIN_EMAIL=you@yourdomain.com
    SEED_ADMIN_PASSWORD=<a strong password>
    ```
-   (`npx vercel env pull .env.vercel --environment=production` can fill most of it automatically.)
-2. `npm run seed:vercel`. **This replaces all content on the live site**, so only use it for the first setup. `npm run seed:vercel -- stories` only replaces stories and testimonials.
+   (`pnpm dlx vercel env pull .env.vercel --environment=production` can fill most of it automatically.)
+2. `pnpm seed:vercel`. **This replaces all content on the live site**, so only use it for the first setup. `pnpm seed:vercel stories` only replaces stories and testimonials.
 3. **Redeploy** once more so the static pages are rebuilt with the content. Edits made in the admin after that show up straight away.
 
 ### 5. Address
@@ -155,7 +157,7 @@ The free address is `https://<project>.vercel.app`. To change it, go to **Settin
 
 ### Day-to-day
 - `git push` to `main` → Vercel builds and deploys automatically.
-- After changing collection fields: `npm run generate:types`, then `npm run migrate:create <name>`, commit the new file in `src/migrations`, and push. The deploy applies it.
+- After changing collection fields: `pnpm generate:types`, then `pnpm migrate:create <name>`, commit the new file in `src/migrations`, and push. The deploy applies it.
 - Email: add the `SMTP_*`, `EMAIL_FROM_*` and `STUDIO_INBOX_EMAIL` variables in Vercel (any SMTP provider: Resend, Postmark, SES, Gmail…) and redeploy.
 - Neon's free tier suspends the database after a few idle minutes, so the first admin request after a quiet period is a little slower. Public pages are served from Vercel's cache and aren't affected.
 - The contact form's rate limiter is in-memory, so on serverless it only slows down bursts from the same instance. The honeypot still filters most bots.

@@ -1,0 +1,13 @@
+# pnpm settings for this (single-package) project.
+
+# Packages allowed to run install/build scripts (pnpm blocks them by default).
+# sharp: native image library used by Payload for resizing uploads.
+allowBuilds: # pnpm 11+
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+
+onlyBuiltDependencies: # same list for pnpm 9/10 (e.g. if Vercel builds with an older pnpm)
+  - esbuild
+  - sharp
+  - unrs-resolver
