@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { Logo } from './Logo'
 import { NAV } from './nav'
 import { ThemeToggle } from './ThemeToggle'
+import { AccountLink } from './AccountLink'
 
 export function Header() {
   const pathname = usePathname()
@@ -46,6 +47,7 @@ export function Header() {
               </li>
             ))}
           </ul>
+          <AccountLink className="text-[0.8rem] tracking-[0.14em] uppercase" labelClassName="sr-only xl:not-sr-only" />
           <ThemeToggle />
         </nav>
 
@@ -89,6 +91,7 @@ export function Header() {
             </li>
           ))}
         </ul>
+        <AccountLink className="mt-8 text-sm tracking-[0.14em] uppercase" onNavigate={() => setOpen(false)} />
         <div className="mt-auto flex items-center justify-between pt-10">
           <span className="eyebrow">Theme</span>
           <ThemeToggle />

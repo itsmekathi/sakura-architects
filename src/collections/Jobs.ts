@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { authenticated } from '../access'
+import { authenticated, isStaffUser } from '../access'
 import { revalidateCollection } from '../lib/revalidate'
 
 export const Jobs: CollectionConfig = {
@@ -11,7 +11,7 @@ export const Jobs: CollectionConfig = {
     defaultColumns: ['title', 'location', 'type', 'open'],
   },
   access: {
-    read: ({ req: { user } }) => (user ? true : { open: { equals: true } }),
+    read: ({ req: { user } }) => (isStaffUser(user) ? true : { open: { equals: true } }),
     create: authenticated,
     update: authenticated,
     delete: authenticated,

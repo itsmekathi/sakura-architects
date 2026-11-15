@@ -1,14 +1,21 @@
 import type { Metadata } from 'next'
 import { ContactForm } from '@/components/ContactForm'
+import { consentTextsFromSettings } from '@/lib/consent'
 import { getSettings } from '@/lib/queries'
+import { getVisitor, googleEnabled } from '@/lib/visitor-session'
 
 export const metadata: Metadata = {
   title: 'Contact',
   description: 'Tell us about your project. We reply to every enquiry.',
 }
 
-export default async function ContactPage() {
-  const settings = await getSettings()
+// Depends on who is signed in, so it is rendered per request.
+export const dynamic = 'force-dynamic'
+
+type Props = { searchParams: Promise<{ guest?: string }> }
+
+export default async function ContactPage({ searchParams }: Props) {
+  const [settings, visitor, { guest }] = await Promise.all([getSettings(), getVisitor(), searchParams])
   const mapQuery = settings.address?.replace(/\n/g, ', ')
 
   return (
@@ -20,7 +27,12 @@ export default async function ContactPage() {
 
       <div className="wrap grid gap-16 md:grid-cols-12">
         <section aria-label="Enquiry form" className="md:col-span-7">
-          <ContactForm />
+          <ContactForm
+            visitor={visitor ? { name: visitor.name, email: visitor.email, phone: visitor.phone } : null}
+            googleEnabled={googleEnabled()}
+            consent={consentTextsFromSettings(settings)}
+            startAsGuest={guest === '1'}
+          />
         </section>
 
         <aside className="space-y-10 md:col-span-4 md:col-start-9">

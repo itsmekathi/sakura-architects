@@ -63,11 +63,13 @@ export type SupportedTimezones =
 
 export interface Config {
   auth: {
+    visitors: VisitorAuthOperations;
     users: UserAuthOperations;
   };
   blocks: {};
   collections: {
     inquiries: Inquiry;
+    visitors: Visitor;
     projects: Project;
     stories: Story;
     testimonials: Testimonial;
@@ -85,6 +87,7 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     inquiries: InquiriesSelect<false> | InquiriesSelect<true>;
+    visitors: VisitorsSelect<false> | VisitorsSelect<true>;
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
     stories: StoriesSelect<false> | StoriesSelect<true>;
     testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
@@ -113,10 +116,28 @@ export interface Config {
   widgets: {
     collections: CollectionsWidget;
   };
-  user: User;
+  user: Visitor | User;
   jobs: {
     tasks: unknown;
     workflows: unknown;
+  };
+}
+export interface VisitorAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
   };
 }
 export interface UserAuthOperations {
@@ -145,13 +166,19 @@ export interface UserAuthOperations {
  */
 export interface Inquiry {
   id: number;
-  name: string;
+  name?: string | null;
   email: string;
   phone?: string | null;
   projectType?: ('residential' | 'commercial' | 'renovation' | 'interiors' | 'consulting' | 'other') | null;
   budget?: ('unsure' | 'lt50k' | '50k-250k' | '250k-1m' | 'gt1m') | null;
+  preferredContact?: ('email' | 'phone' | 'either') | null;
   message: string;
   status: 'new' | 'in-progress' | 'replied' | 'closed';
+  submittedAs?: ('anonymous' | 'account') | null;
+  /**
+   * Set when the visitor was signed in.
+   */
+  visitor?: (number | null) | Visitor;
   assignedTo?: (number | null) | User;
   /**
    * Type a reply and click Save. It is emailed to the visitor, added to the thread below, and the status becomes "Replied".
@@ -169,9 +196,46 @@ export interface Inquiry {
    * Only visible to staff.
    */
   internalNotes?: string | null;
+  /**
+   * Recorded when the enquiry was sent.
+   */
+  consent?: {
+    contact?: boolean | null;
+    dataNotice?: boolean | null;
+    consentedAt?: string | null;
+    text?: string | null;
+  };
   source?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * People who created an account on the website to send and track enquiries.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visitors".
+ */
+export interface Visitor {
+  id: number;
+  name?: string | null;
+  phone?: string | null;
+  /**
+   * How the account was first created.
+   */
+  provider?: ('password' | 'google') | null;
+  googleSub?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  password?: string | null;
+  collection: 'visitors';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -260,7 +324,6 @@ export interface Media {
    */
   alt: string;
   credit?: string | null;
-  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -505,6 +568,10 @@ export interface PayloadLockedDocument {
         value: number | Inquiry;
       } | null)
     | ({
+        relationTo: 'visitors';
+        value: number | Visitor;
+      } | null)
+    | ({
         relationTo: 'projects';
         value: number | Project;
       } | null)
@@ -541,10 +608,15 @@ export interface PayloadLockedDocument {
         value: number | User;
       } | null);
   globalSlug?: string | null;
-  user: {
-    relationTo: 'users';
-    value: number | User;
-  };
+  user:
+    | {
+        relationTo: 'visitors';
+        value: number | Visitor;
+      }
+    | {
+        relationTo: 'users';
+        value: number | User;
+      };
   updatedAt: string;
   createdAt: string;
 }
@@ -554,10 +626,15 @@ export interface PayloadLockedDocument {
  */
 export interface PayloadPreference {
   id: number;
-  user: {
-    relationTo: 'users';
-    value: number | User;
-  };
+  user:
+    | {
+        relationTo: 'visitors';
+        value: number | Visitor;
+      }
+    | {
+        relationTo: 'users';
+        value: number | User;
+      };
   key?: string | null;
   value?:
     | {
@@ -592,8 +669,11 @@ export interface InquiriesSelect<T extends boolean = true> {
   phone?: T;
   projectType?: T;
   budget?: T;
+  preferredContact?: T;
   message?: T;
   status?: T;
+  submittedAs?: T;
+  visitor?: T;
   assignedTo?: T;
   replyMessage?: T;
   replies?:
@@ -605,9 +685,37 @@ export interface InquiriesSelect<T extends boolean = true> {
         id?: T;
       };
   internalNotes?: T;
+  consent?:
+    | T
+    | {
+        contact?: T;
+        dataNotice?: T;
+        consentedAt?: T;
+        text?: T;
+      };
   source?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visitors_select".
+ */
+export interface VisitorsSelect<T extends boolean = true> {
+  name?: T;
+  phone?: T;
+  provider?: T;
+  googleSub?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  resetPasswordRequestedAt?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -740,7 +848,6 @@ export interface JobsSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   credit?: T;
-  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -905,6 +1012,18 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Checkbox 1: permission to be contacted.
+   */
+  contactConsentText?: string | null;
+  /**
+   * Checkbox 2: how enquiry data is stored. Blank lines separate paragraphs; {months} is replaced with the retention period below.
+   */
+  dataNoticeText?: string | null;
+  /**
+   * How long enquiries are kept after the last contact.
+   */
+  retentionMonths?: number | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -943,6 +1062,9 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         url?: T;
         id?: T;
       };
+  contactConsentText?: T;
+  dataNoticeText?: T;
+  retentionMonths?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

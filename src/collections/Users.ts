@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { isAdmin, isAdminField, isAdminOrSelf } from '../access'
+import { isAdmin, isAdminField, isAdminOrSelf, isStaffUser } from '../access'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -10,7 +10,7 @@ export const Users: CollectionConfig = {
     create: isAdmin,
     update: isAdminOrSelf,
     delete: isAdmin,
-    admin: ({ req: { user } }) => Boolean(user),
+    admin: ({ req: { user } }) => isStaffUser(user),
   },
   hooks: {
     beforeChange: [

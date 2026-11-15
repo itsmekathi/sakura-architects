@@ -18,6 +18,7 @@ import { Jobs } from './collections/Jobs'
 import { Inquiries } from './collections/Inquiries'
 import { Stories } from './collections/Stories'
 import { Testimonials } from './collections/Testimonials'
+import { Visitors } from './collections/Visitors'
 import { SiteSettings } from './globals/SiteSettings'
 import { SITE_URL } from './lib/site-url'
 
@@ -62,7 +63,7 @@ export default buildConfig({
       },
     },
   },
-  collections: [Inquiries, Projects, Stories, Testimonials, Posts, Services, Team, Jobs, Media, Users],
+  collections: [Inquiries, Visitors, Projects, Stories, Testimonials, Posts, Services, Team, Jobs, Media, Users],
   globals: [SiteSettings],
   editor: lexicalEditor(),
   email,

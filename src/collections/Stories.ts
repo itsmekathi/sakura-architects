@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { authenticated } from '../access'
+import { authenticated, isStaffUser } from '../access'
 import { slugField } from '../fields/slug'
 import { revalidateCollection } from '../lib/revalidate'
 
@@ -14,7 +14,7 @@ export const Stories: CollectionConfig = {
   },
   access: {
     read: ({ req: { user } }) =>
-      user ? true : { publishedAt: { less_than_equal: new Date().toISOString() } },
+      isStaffUser(user) ? true : { publishedAt: { less_than_equal: new Date().toISOString() } },
     create: authenticated,
     update: authenticated,
     delete: authenticated,

@@ -1,5 +1,6 @@
 import * as migration_20261115_034738_initial from './20261115_034738_initial';
 import * as migration_20261115_115817_add_blob_storage_fields from './20261115_115817_add_blob_storage_fields';
+import * as migration_20261115_124348_visitor_accounts_and_consent from './20261115_124348_visitor_accounts_and_consent';
 
 export const migrations = [
   {
@@ -10,6 +11,11 @@ export const migrations = [
   {
     up: migration_20261115_115817_add_blob_storage_fields.up,
     down: migration_20261115_115817_add_blob_storage_fields.down,
-    name: '20261115_115817_add_blob_storage_fields'
+    name: '20261115_115817_add_blob_storage_fields',
+  },
+  {
+    up: migration_20261115_124348_visitor_accounts_and_consent.up,
+    down: migration_20261115_124348_visitor_accounts_and_consent.down,
+    name: '20261115_124348_visitor_accounts_and_consent'
   },
 ];

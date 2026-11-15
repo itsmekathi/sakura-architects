@@ -68,7 +68,17 @@ Postgres runs with `push: false`, so **schema changes need a migration**: after 
 
 The admin import map must include the Blob client-upload handler even though it's disabled locally. The `generate:importmap` script therefore injects a placeholder token, which must match `vercel_blob_rw_<id>_<rand>`. Always regenerate through the npm script, never with a bare `payload generate:importmap`.
 
-`npm run seed:vercel` seeds the hosted DB/Blob from `.env.vercel` (gitignored). `--env-file` values take precedence over `.env`. The frontend layout sets `revalidate = 3600` as a safety net (e.g. for content scheduled with a future `publishedAt`).
+`npm run seed:vercel` seeds the hosted DB/Blob from `.env.vercel` (gitignored). **Never reuse one `context` object across Local API calls** (the seed uses `ctx()` for a fresh one each time). Payload uses the passed object as-is, the cloud-storage plugin stores per-upload state on it, and a shared object made every Blob upload after the first one silently skip. `--env-file` values take precedence over `.env`. The frontend layout sets `revalidate = 3600` as a safety net (e.g. for content scheduled with a future `publishedAt`).
+
+## Staff vs. site visitors (auth)
+
+There are two auth collections: `users` (staff, admin panel) and `visitors` (public site accounts, `src/collections/Visitors.ts`).
+- **Never treat `Boolean(req.user)` as "staff".** A signed-in visitor is a user too. Use `isStaff` / `isStaffUser` / `isStaffField` from `src/access.ts` (`authenticated` is now an alias of `isStaff`). Visitor-scoped rules use `isVisitorUser`. For example, inquiries are readable by a visitor only where `visitor = user.id`, and `internalNotes` / `assignedTo` are staff-only fields.
+- Sessions: both sign-in methods put a Payload JWT in the shared `payload-token` cookie. Password logins call `payload.login()`. Google logins (`src/app/(frontend)/auth/google/*`, `src/lib/google-oauth.ts`: Authorization Code + PKCE) mint it with Payload's exported `jwtSign` + `getFieldsToSign` in `src/lib/visitor-session.ts`. That only works because `visitors` has `auth.useSessions: false` (Payload's session list is written only by its own login). Signing in as a visitor replaces a staff session in the same browser.
+- Payload ignores the cookie on requests without an `Origin` (or `Sec-Fetch-Site`) header from an allowed origin. Browsers send them, but scripts and tests don't, so non-browser clients must send `Authorization: JWT <token>`.
+- Use `getVisitor()` in server components and actions (returns null for staff cookies). Pages reading it are dynamic (`/contact`, `/account/*`). The header's `AccountLink` checks `/api/visitors/me` client-side, so other pages stay static.
+- The contact flow: choice panel → form → a `<dialog>` consent step (`components/ContactForm.tsx`) → `contact/actions.ts`. Consent is validated in zod and at collection level (`consent.contact` / `consent.dataNotice` required on create), and the wording from Site settings is snapshotted onto the enquiry. Default texts live in `src/lib/consent.ts`.
+- Local SQLite gotcha: drizzle's dev push fails (`no such column` on `INSERT INTO __new_<table>`) when a schema change both rebuilds a table (e.g. dropping NOT NULL) and adds columns. Reset the local DB (`rm sakura.db && rm -rf media && npm run seed`) rather than patching it. Postgres uses migrations and is unaffected.
 
 ## Environment
 

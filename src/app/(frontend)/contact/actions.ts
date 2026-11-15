@@ -1,9 +1,11 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { z } from 'zod'
 import { getPayloadClient } from '@/lib/payload'
 import { BUDGETS, PROJECT_TYPES } from '@/lib/constants'
+import { consentTextsFromSettings } from '@/lib/consent'
+import { clientIp, rateLimited } from '@/lib/rate-limit'
+import { getVisitor } from '@/lib/visitor-session'
 
 export type ContactState = {
   status: 'idle' | 'success' | 'error'
@@ -11,56 +13,73 @@ export type ContactState = {
   errors?: Partial<Record<string, string>>
 }
 
-const schema = z.object({
-  name: z.string().trim().min(2, 'Please tell us your name.').max(120),
-  email: z.string().trim().email('Please enter a valid email address.'),
-  phone: z.string().trim().max(40).optional().or(z.literal('')),
-  projectType: z.enum(PROJECT_TYPES.map((t) => t.value) as [string, ...string[]]).optional().or(z.literal('')),
-  budget: z.enum(BUDGETS.map((b) => b.value) as [string, ...string[]]).optional().or(z.literal('')),
-  message: z.string().trim().min(10, 'A few more words would help us respond.').max(5000),
-})
+const optionalEnum = (values: string[]) => z.enum(values as [string, ...string[]]).optional().or(z.literal(''))
 
-// Simple in-memory limiter: fine for a single server. Use a shared store (e.g. Redis) if you scale out.
-const WINDOW_MS = 10 * 60 * 1000
-const MAX_PER_WINDOW = 5
-const hits = new Map<string, number[]>()
-
-function rateLimited(key: string) {
-  const now = Date.now()
-  const recent = (hits.get(key) ?? []).filter((t) => now - t < WINDOW_MS)
-  recent.push(now)
-  hits.set(key, recent)
-  return recent.length > MAX_PER_WINDOW
-}
+const schema = z
+  .object({
+    name: z.string().trim().max(120).optional(),
+    email: z.string().trim().toLowerCase().email('Please enter a valid email address.'),
+    phone: z.string().trim().max(40).optional(),
+    preferredContact: z.enum(['email', 'phone', 'either'], { message: 'Choose how we should contact you.' }),
+    projectType: optionalEnum(PROJECT_TYPES.map((t) => t.value)),
+    budget: optionalEnum(BUDGETS.map((b) => b.value)),
+    message: z.string().trim().min(10, 'A few more words would help us respond.').max(5000),
+    consentContact: z.literal('on', { message: 'Please confirm we may contact you.' }),
+    consentData: z.literal('on', { message: 'Please confirm you’ve read how we store your data.' }),
+  })
+  .refine((d) => d.preferredContact === 'email' || Boolean(d.phone), {
+    path: ['phone'],
+    message: 'Add a phone number so we can call you, or choose email.',
+  })
 
 export async function submitInquiry(_prev: ContactState, formData: FormData): Promise<ContactState> {
   // Honeypot: real visitors never see or fill this field.
   if (formData.get('company')) return { status: 'success' }
 
-  const h = await headers()
-  const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip') || 'unknown'
-  if (rateLimited(ip)) {
+  if (rateLimited(`contact:${await clientIp()}`, 5, 10 * 60 * 1000)) {
     return { status: 'error', message: 'Too many messages in a short time. Please try again later or email us directly.' }
   }
 
-  const parsed = schema.safeParse(Object.fromEntries(formData))
+  const visitor = await getVisitor()
+  const input = Object.fromEntries(formData)
+  // Signed-in visitors always send from their account email.
+  if (visitor) input.email = visitor.email
+
+  const parsed = schema.safeParse(input)
   if (!parsed.success) {
     const errors: Record<string, string> = {}
     for (const issue of parsed.error.issues) errors[String(issue.path[0])] ||= issue.message
-    return { status: 'error', message: 'Please check the highlighted fields.', errors }
+    const consentMissing = errors.consentContact || errors.consentData
+    return {
+      status: 'error',
+      message: consentMissing && Object.keys(errors).length <= 2 ? consentMissing : 'Please check the highlighted fields.',
+      errors,
+    }
   }
 
-  const { phone, projectType, budget, ...rest } = parsed.data
+  const d = parsed.data
   try {
     const payload = await getPayloadClient()
+    // Snapshot the wording the visitor agreed to (from Site settings, never from the browser).
+    const settings = await payload.findGlobal({ slug: 'site-settings' })
+    const texts = consentTextsFromSettings(settings)
     await payload.create({
       collection: 'inquiries',
       data: {
-        ...rest,
-        phone: phone || undefined,
-        projectType: (projectType || undefined) as any,
-        budget: (budget || undefined) as any,
+        name: d.name || visitor?.name || undefined,
+        email: d.email,
+        phone: d.phone || undefined,
+        preferredContact: d.preferredContact,
+        projectType: (d.projectType || undefined) as any,
+        budget: (d.budget || undefined) as any,
+        message: d.message,
         status: 'new',
+        visitor: visitor?.id,
+        consent: {
+          contact: true,
+          dataNotice: true,
+          text: `${texts.contact}\n\n---\n\n${texts.dataNotice}`,
+        },
       },
     })
   } catch (err) {
@@ -68,5 +87,10 @@ export async function submitInquiry(_prev: ContactState, formData: FormData): Pr
     return { status: 'error', message: 'Something went wrong on our side. Please email us directly.' }
   }
 
-  return { status: 'success', message: 'Thank you. We usually reply within two working days.' }
+  return {
+    status: 'success',
+    message: visitor
+      ? 'Thank you. You can follow this enquiry and our reply in My account.'
+      : 'Thank you. We usually reply within two working days.',
+  }
 }

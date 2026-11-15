@@ -42,6 +42,27 @@ Saving in the admin revalidates the affected pages immediately, so there's no re
 New enquiries also send a notification to `STUDIO_INBOX_EMAIL` (or the email in Site settings).
 Without `SMTP_HOST` configured, emails are **logged to the server console** instead of sent, which is handy locally.
 
+### Visitor accounts, anonymous enquiries and consent
+
+- On **Contact**, visitors choose to **continue with Google**, **sign in / create an account** (email + password), or **continue without an account**.
+- Signed-in visitors get their details pre-filled and a **My account** page (`/account`) listing their enquiries, statuses and your replies. They can edit their details, reset their password, or delete their account (which also deletes their enquiries).
+- Before anything is sent, a **consent dialog** shows a summary plus two unticked checkboxes: permission to be contacted by phone or email, and the data storage notice. **Agree & send** stays disabled until both are ticked, and the server enforces it too.
+- Each enquiry records **Submitted as** (anonymous / signed in), the linked **Site account**, the **preferred contact** method, and **Consent given by the visitor**: both checkboxes, the time, and the exact wording shown.
+- Edit the wording in **Admin → Site settings → Enquiry consent**. The data notice also appears on the Privacy page. Placeholder text: have it reviewed for your jurisdiction.
+- Visitor accounts are listed under **Inbox → Site visitors**. Visitors can never use the admin panel.
+- Staff and visitors share one login cookie. If you sign in as a visitor in the same browser, you're signed out of the admin.
+
+### Google sign-in
+
+Optional. The Google button only appears once these are set.
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create (or pick) a project.
+2. **APIs & Services → OAuth consent screen**: User type **External**, app name *Sakura Architects*, your support email, and scopes `openid`, `email`, `profile`. Then **Publish app**; in *Testing* mode only listed test users can sign in.
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID**, type **Web application**, with **Authorized redirect URIs**:
+   - `https://sakuraarchitects.vercel.app/auth/google/callback`
+   - `http://localhost:3000/auth/google/callback`
+   (add your custom domain's `/auth/google/callback` later).
+4. Copy the **Client ID** and **Client secret** into Vercel (**Settings → Environment Variables**, as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`) and into your local `.env`, then redeploy / restart `npm run dev`.
+
 ### Roles
 
 The first user is an **admin**. Admins can manage users and delete enquiries. **Editors** can do everything else.
