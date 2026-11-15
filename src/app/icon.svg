@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <style>.c{fill:#1f1d1b}@media (prefers-color-scheme:dark){.c{fill:#ede7df}}</style>
+  <g transform="translate(20 20)" fill="#e8b4b8">
+    <path d="M0 -2 C -5 -6 -6 -13 -2 -17 L 0 -15 L 2 -17 C 6 -13 5 -6 0 -2 Z"/>
+    <path transform="rotate(72)" d="M0 -2 C -5 -6 -6 -13 -2 -17 L 0 -15 L 2 -17 C 6 -13 5 -6 0 -2 Z"/>
+    <path transform="rotate(144)" d="M0 -2 C -5 -6 -6 -13 -2 -17 L 0 -15 L 2 -17 C 6 -13 5 -6 0 -2 Z"/>
+    <path transform="rotate(216)" d="M0 -2 C -5 -6 -6 -13 -2 -17 L 0 -15 L 2 -17 C 6 -13 5 -6 0 -2 Z"/>
+    <path transform="rotate(288)" d="M0 -2 C -5 -6 -6 -13 -2 -17 L 0 -15 L 2 -17 C 6 -13 5 -6 0 -2 Z"/>
+    <circle class="c" r="1.6"/>
+  </g>
+</svg>
