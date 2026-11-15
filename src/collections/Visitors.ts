@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { isStaff, isStaffOrSelfVisitor, isStaffField } from '../access'
 import { passwordResetEmailHTML } from '../lib/email'
+import { validateIndianPhoneField } from '../lib/phone'
 
 /**
  * Public site accounts (separate from staff `users`). Visitors can sign in with email + password
@@ -40,7 +41,7 @@ export const Visitors: CollectionConfig = {
   },
   fields: [
     { name: 'name', type: 'text' },
-    { name: 'phone', type: 'text' },
+    { name: 'phone', type: 'text', validate: validateIndianPhoneField },
     {
       name: 'provider',
       type: 'select',

@@ -17,10 +17,4 @@ export const PROJECT_TYPES = [
   { label: 'Other', value: 'other' },
 ]
 
-export const BUDGETS = [
-  { label: 'Not sure yet', value: 'unsure' },
-  { label: 'Under 50k', value: 'lt50k' },
-  { label: '50k – 250k', value: '50k-250k' },
-  { label: '250k – 1M', value: '250k-1m' },
-  { label: 'Over 1M', value: 'gt1m' },
-]
+// Budget options (INR) live in ./budget.ts.

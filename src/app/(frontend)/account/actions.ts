@@ -5,6 +5,14 @@ import { z } from 'zod'
 import { getPayloadClient } from '@/lib/payload'
 import { clientIp, rateLimited } from '@/lib/rate-limit'
 import { clearSessionCookie, getVisitor, safeNext, setSessionCookie } from '@/lib/visitor-session'
+import { parseIndianPhone, PHONE_ERROR } from '@/lib/phone'
+
+const phone = z
+  .string()
+  .trim()
+  .max(40)
+  .optional()
+  .refine((v) => !v || parseIndianPhone(v), PHONE_ERROR)
 
 export type FormState = {
   status: 'idle' | 'error' | 'success'
@@ -31,7 +39,7 @@ const signupSchema = z
   .object({
     name: z.string().trim().min(2, 'Please tell us your name.').max(120),
     email,
-    phone: z.string().trim().max(40).optional(),
+    phone,
     password,
     confirm: z.string(),
   })
@@ -41,7 +49,8 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
   if (await limited('signup', 5)) return { status: 'error', message: 'Too many attempts. Please try again later.' }
   const parsed = signupSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { status: 'error', message: 'Please check the highlighted fields.', errors: fieldErrors(parsed.error.issues) }
-  const { name, email, phone, password } = parsed.data
+  const { name, email, password } = parsed.data
+  const phoneDisplay = parseIndianPhone(parsed.data.phone)?.display
 
   const payload = await getPayloadClient()
   const existing = await payload.find({ collection: 'visitors', where: { email: { equals: email } }, limit: 1 })
@@ -51,7 +60,7 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
       errors: { email: 'An account with this email already exists. Sign in instead, or use “Forgot password”.' },
     }
   }
-  await payload.create({ collection: 'visitors', data: { name, email, phone: phone || undefined, password, provider: 'password' } })
+  await payload.create({ collection: 'visitors', data: { name, email, phone: phoneDisplay, password, provider: 'password' } })
   const { token, exp } = await payload.login({ collection: 'visitors', data: { email, password } })
   if (token) await setSessionCookie(token, exp)
   redirect(safeNext(formData.get('next')))
@@ -128,14 +137,14 @@ export async function updateProfile(_prev: FormState, formData: FormData): Promi
   const visitor = await getVisitor()
   if (!visitor) redirect('/account/login')
   const parsed = z
-    .object({ name: z.string().trim().min(2, 'Please enter your name.').max(120), phone: z.string().trim().max(40) })
+    .object({ name: z.string().trim().min(2, 'Please enter your name.').max(120), phone })
     .safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error.issues) }
   const payload = await getPayloadClient()
   await payload.update({
     collection: 'visitors',
     id: visitor.id,
-    data: { name: parsed.data.name, phone: parsed.data.phone || null },
+    data: { name: parsed.data.name, phone: parseIndianPhone(parsed.data.phone)?.display ?? null },
     overrideAccess: false,
     user: visitor,
   })

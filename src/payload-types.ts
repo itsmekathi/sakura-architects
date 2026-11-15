@@ -170,8 +170,14 @@ export interface Inquiry {
   email: string;
   phone?: string | null;
   projectType?: ('residential' | 'commercial' | 'renovation' | 'interiors' | 'consulting' | 'other') | null;
-  budget?: ('unsure' | 'lt50k' | '50k-250k' | '250k-1m' | 'gt1m') | null;
+  budgetRange?: ('unsure' | 'lt25l' | '25l-1cr' | '1cr-5cr' | 'gt5cr' | 'custom') | null;
   preferredContact?: ('email' | 'phone' | 'either') | null;
+  /**
+   * Filled in automatically, e.g. “₹40 lakh – ₹60 lakh”.
+   */
+  budget?: string | null;
+  budgetMin?: number | null;
+  budgetMax?: number | null;
   message: string;
   status: 'new' | 'in-progress' | 'replied' | 'closed';
   submittedAs?: ('anonymous' | 'account') | null;
@@ -668,8 +674,11 @@ export interface InquiriesSelect<T extends boolean = true> {
   email?: T;
   phone?: T;
   projectType?: T;
-  budget?: T;
+  budgetRange?: T;
   preferredContact?: T;
+  budget?: T;
+  budgetMin?: T;
+  budgetMax?: T;
   message?: T;
   status?: T;
   submittedAs?: T;

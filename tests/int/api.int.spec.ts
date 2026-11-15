@@ -21,7 +21,7 @@ async function makeVisitor(email: string) {
 async function makeInquiry(data: Record<string, unknown>) {
   const doc = await payload.create({
     collection: 'inquiries',
-    data: { email: 'visitor@example.com', message: 'We would like to build a small house.', status: 'new', consent, ...data } as any,
+    data: { name: 'Test Visitor', email: 'visitor@example.com', message: 'We would like to build a small house.', status: 'new', consent, ...data } as any,
   })
   createdInquiries.push(doc.id)
   return doc
@@ -56,15 +56,34 @@ describe('API', () => {
     ).rejects.toThrow()
   })
 
-  it('records anonymous submissions with a default name and consent timestamp', async () => {
+  it('records anonymous submissions with a consent timestamp', async () => {
     const doc = await makeInquiry({})
-    expect(doc.name).toBe('Anonymous visitor')
     expect(doc.submittedAs).toBe('anonymous')
     expect(doc.consent?.consentedAt).toBeTruthy()
   })
 
+  it('requires a name on new inquiries', async () => {
+    await expect(makeInquiry({ name: '' })).rejects.toThrow()
+    await expect(makeInquiry({ name: '   ' })).rejects.toThrow()
+  })
+
+  it('accepts Indian phone numbers and rejects others', async () => {
+    const ok = await makeInquiry({ phone: '+91 98765 43210', preferredContact: 'phone' })
+    expect(ok.phone).toBe('+91 98765 43210')
+    await expect(makeInquiry({ phone: '+44 20 7946 0958' })).rejects.toThrow()
+    await expect(makeInquiry({ phone: '12345' })).rejects.toThrow()
+    await expect(makeInquiry({ preferredContact: 'phone' })).rejects.toThrow() // phone missing
+  })
+
+  it('rejects a non-Indian phone on a visitor account', async () => {
+    const v = await makeVisitor('phone-test@example.com')
+    await expect(payload.update({ collection: 'visitors', id: v.id, data: { phone: '+1 415 555 0123' } })).rejects.toThrow()
+    const updated = await payload.update({ collection: 'visitors', id: v.id, data: { phone: '+91 98765 43210' } })
+    expect(updated.phone).toBe('+91 98765 43210')
+  })
+
   it('records a reply in the thread and marks the inquiry replied', async () => {
-    const inquiry = await makeInquiry({ name: 'Test Visitor' })
+    const inquiry = await makeInquiry({})
     expect(inquiry.status).toBe('new')
 
     const updated = await payload.update({

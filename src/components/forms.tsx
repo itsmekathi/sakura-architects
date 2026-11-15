@@ -1,9 +1,12 @@
 'use client'
 
 import { useFormStatus } from 'react-dom'
+import { parseIndianPhone, PHONE_ERROR } from '@/lib/phone'
 
+// Underlined fields. Focus is shown three ways (none of which shift layout): a soft background tint,
+// a 2px rose underline drawn with an inset shadow, and the label turning rose (see Field).
 export const inputCls =
-  'w-full border-0 border-b border-line bg-transparent px-0 py-3 text-base text-ink placeholder:text-stone/70 focus:border-ink focus:ring-0 focus:outline-none aria-[invalid=true]:border-sakura-ink disabled:opacity-60'
+  'w-full rounded-none border-0 border-b border-line bg-transparent px-3 py-3 text-base text-ink transition-[background-color,box-shadow,border-color] duration-200 placeholder:text-stone/70 hover:border-stone focus:border-transparent focus:bg-paper-2 focus:shadow-[inset_0_-2px_0_var(--sakura-ink)] focus:ring-0 focus:outline-none aria-[invalid=true]:border-sakura-ink aria-[invalid=true]:shadow-[inset_0_-2px_0_var(--sakura-ink)] disabled:opacity-60 read-only:focus:bg-transparent read-only:focus:shadow-none'
 
 export function Field({
   label,
@@ -19,14 +22,14 @@ export function Field({
   children: React.ReactNode
 }) {
   return (
-    <div>
-      <label htmlFor={name} className="eyebrow block">
+    <div className="group">
+      <label htmlFor={name} className="eyebrow block px-3 transition-colors group-focus-within:text-sakura-ink">
         {label}
       </label>
       {children}
-      {hint && !error && <p className="mt-2 text-xs text-stone">{hint}</p>}
+      {hint && !error && <p className="mt-2 px-3 text-xs text-stone">{hint}</p>}
       {error && (
-        <p id={`${name}-error`} className="mt-2 text-sm text-sakura-ink">
+        <p id={`${name}-error`} className="mt-2 px-3 text-sm text-sakura-ink">
           {error}
         </p>
       )}
@@ -39,6 +42,47 @@ export const ariaFor = (errors: Partial<Record<string, string>> | undefined, nam
   'aria-invalid': errors?.[name] ? true : undefined,
   'aria-describedby': errors?.[name] ? `${name}-error` : undefined,
 })
+
+/**
+ * Indian phone input. Validates as you type (native validity, so `form.reportValidity()` and the
+ * browser bubble work) and tidies a valid number to "+91 98765 43210" when the field loses focus.
+ */
+export function PhoneInput({
+  required = false,
+  defaultValue,
+  errors,
+  className = '',
+}: {
+  required?: boolean
+  defaultValue?: string | null
+  errors?: Partial<Record<string, string>>
+  className?: string
+}) {
+  const check = (el: HTMLInputElement) => {
+    const v = el.value.trim()
+    el.setCustomValidity(!v || parseIndianPhone(v) ? '' : PHONE_ERROR)
+  }
+  return (
+    <input
+      id="phone"
+      name="phone"
+      type="tel"
+      inputMode="tel"
+      autoComplete="tel-national"
+      placeholder="98765 43210"
+      required={required}
+      defaultValue={defaultValue ?? ''}
+      onChange={(e) => check(e.currentTarget)}
+      onBlur={(e) => {
+        const parsed = parseIndianPhone(e.currentTarget.value)
+        if (parsed) e.currentTarget.value = parsed.display
+        check(e.currentTarget)
+      }}
+      className={`${inputCls} ${className}`}
+      {...ariaFor(errors, 'phone')}
+    />
+  )
+}
 
 export const buttonCls =
   'inline-flex items-center justify-center bg-ink px-8 py-4 text-sm tracking-[0.16em] text-paper uppercase transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40'

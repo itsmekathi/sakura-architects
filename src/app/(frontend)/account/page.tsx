@@ -83,6 +83,7 @@ export default async function AccountPage() {
                     <p className="eyebrow">
                       {fmt(q.createdAt)}
                       {q.projectType ? ` · ${PROJECT_TYPES.find((t) => t.value === q.projectType)?.label ?? q.projectType}` : ''}
+                      {q.budget ? ` · ${q.budget}` : ''}
                     </p>
                     <span className={`border px-3 py-1 text-xs tracking-[0.14em] uppercase ${status.cls}`}>{status.label}</span>
                   </div>

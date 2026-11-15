@@ -2,10 +2,12 @@
 
 import { z } from 'zod'
 import { getPayloadClient } from '@/lib/payload'
-import { BUDGETS, PROJECT_TYPES } from '@/lib/constants'
+import { PROJECT_TYPES } from '@/lib/constants'
+import { BUDGET_RANGES, parseAmount, toRupees } from '@/lib/budget'
 import { consentTextsFromSettings } from '@/lib/consent'
 import { clientIp, rateLimited } from '@/lib/rate-limit'
 import { getVisitor } from '@/lib/visitor-session'
+import { parseIndianPhone, PHONE_ERROR } from '@/lib/phone'
 
 export type ContactState = {
   status: 'idle' | 'success' | 'error'
@@ -17,12 +19,20 @@ const optionalEnum = (values: string[]) => z.enum(values as [string, ...string[]
 
 const schema = z
   .object({
-    name: z.string().trim().max(120).optional(),
+    name: z.string().trim().min(2, 'Please tell us your name.').max(120),
     email: z.string().trim().toLowerCase().email('Please enter a valid email address.'),
-    phone: z.string().trim().max(40).optional(),
+    phone: z
+      .string()
+      .trim()
+      .max(40)
+      .optional()
+      .refine((v) => !v || parseIndianPhone(v), PHONE_ERROR),
     preferredContact: z.enum(['email', 'phone', 'either'], { message: 'Choose how we should contact you.' }),
     projectType: optionalEnum(PROJECT_TYPES.map((t) => t.value)),
-    budget: optionalEnum(BUDGETS.map((b) => b.value)),
+    budgetRange: optionalEnum(BUDGET_RANGES.map((b) => b.value)),
+    budgetFrom: z.string().optional(),
+    budgetTo: z.string().optional(),
+    budgetUnit: z.enum(['lakh', 'crore']).optional(),
     message: z.string().trim().min(10, 'A few more words would help us respond.').max(5000),
     consentContact: z.literal('on', { message: 'Please confirm we may contact you.' }),
     consentData: z.literal('on', { message: 'Please confirm you’ve read how we store your data.' }),
@@ -30,6 +40,16 @@ const schema = z
   .refine((d) => d.preferredContact === 'email' || Boolean(d.phone), {
     path: ['phone'],
     message: 'Add a phone number so we can call you, or choose email.',
+  })
+  .superRefine((d, ctx) => {
+    if (d.budgetRange !== 'custom') return
+    const from = parseAmount(d.budgetFrom)
+    const to = d.budgetTo?.trim() ? parseAmount(d.budgetTo) : undefined
+    if (Number.isNaN(from)) ctx.addIssue({ code: 'custom', path: ['budgetFrom'], message: 'Enter an amount, e.g. 40.' })
+    if (to !== undefined && Number.isNaN(to)) ctx.addIssue({ code: 'custom', path: ['budgetTo'], message: 'Enter a number, or leave it empty.' })
+    else if (to !== undefined && !Number.isNaN(from) && to < from) {
+      ctx.addIssue({ code: 'custom', path: ['budgetTo'], message: 'The upper amount should be at least the lower one.' })
+    }
   })
 
 export async function submitInquiry(_prev: ContactState, formData: FormData): Promise<ContactState> {
@@ -66,12 +86,16 @@ export async function submitInquiry(_prev: ContactState, formData: FormData): Pr
     await payload.create({
       collection: 'inquiries',
       data: {
-        name: d.name || visitor?.name || undefined,
+        name: d.name,
         email: d.email,
-        phone: d.phone || undefined,
+        phone: parseIndianPhone(d.phone)?.display,
         preferredContact: d.preferredContact,
         projectType: (d.projectType || undefined) as any,
-        budget: (d.budget || undefined) as any,
+        budgetRange: (d.budgetRange || undefined) as any,
+        ...(d.budgetRange === 'custom' && {
+          budgetMin: toRupees(parseAmount(d.budgetFrom), d.budgetUnit ?? 'lakh'),
+          budgetMax: d.budgetTo?.trim() ? toRupees(parseAmount(d.budgetTo), d.budgetUnit ?? 'lakh') : undefined,
+        }),
         message: d.message,
         status: 'new',
         visitor: visitor?.id,

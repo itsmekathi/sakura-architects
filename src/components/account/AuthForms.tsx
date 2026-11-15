@@ -11,7 +11,8 @@ import {
   updateProfile,
   type FormState,
 } from '@/app/(frontend)/account/actions'
-import { ariaFor, Field, FormMessage, inputCls, SubmitButton } from '@/components/forms'
+import { ariaFor, Field, FormMessage, inputCls, PhoneInput, SubmitButton } from '@/components/forms'
+import { PHONE_HINT } from '@/lib/phone'
 
 const idle: FormState = { status: 'idle' }
 
@@ -52,8 +53,8 @@ export function SignupForm({ next }: { next: string }) {
       <Field label="Email" name="email" error={e?.email}>
         <input id="email" name="email" type="email" autoComplete="email" required className={inputCls} {...ariaFor(e, 'email')} />
       </Field>
-      <Field label="Phone (optional)" name="phone" error={e?.phone}>
-        <input id="phone" name="phone" type="tel" autoComplete="tel" className={inputCls} {...ariaFor(e, 'phone')} />
+      <Field label="Phone (optional)" name="phone" error={e?.phone} hint={PHONE_HINT}>
+        <PhoneInput errors={e} />
       </Field>
       <Field label="Password" name="password" error={e?.password} hint="At least 8 characters.">
         <input id="password" name="password" type="password" autoComplete="new-password" required className={inputCls} {...ariaFor(e, 'password')} />
@@ -109,8 +110,8 @@ export function ProfileForm({ name, phone }: { name?: string | null; phone?: str
       <Field label="Name" name="name" error={e?.name}>
         <input id="name" name="name" defaultValue={name ?? ''} autoComplete="name" className={inputCls} {...ariaFor(e, 'name')} />
       </Field>
-      <Field label="Phone" name="phone" error={e?.phone}>
-        <input id="phone" name="phone" type="tel" defaultValue={phone ?? ''} autoComplete="tel" className={inputCls} {...ariaFor(e, 'phone')} />
+      <Field label="Phone" name="phone" error={e?.phone} hint={PHONE_HINT}>
+        <PhoneInput defaultValue={phone} errors={e} />
       </Field>
       <div className="flex items-center gap-6">
         <SubmitButton pendingText="Saving…">Save</SubmitButton>

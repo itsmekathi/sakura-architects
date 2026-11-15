@@ -1,7 +1,9 @@
 import type { CollectionConfig } from 'payload'
 import { isAdmin, isStaff, isStaffField, isStaffUser, isVisitorUser } from '../access'
 import { replyEmail, newInquiryEmail } from '../lib/email'
-import { BUDGETS, PROJECT_TYPES } from '../lib/constants'
+import { PROJECT_TYPES } from '../lib/constants'
+import { BUDGET_RANGES, budgetSummary } from '../lib/budget'
+import { isIndianPhone, PHONE_ERROR } from '../lib/phone'
 
 const visitorField = { admin: { readOnly: true } } as const
 
@@ -19,7 +21,7 @@ export const Inquiries: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     group: 'Inbox',
-    defaultColumns: ['name', 'submittedAs', 'preferredContact', 'status', 'createdAt'],
+    defaultColumns: ['name', 'budget', 'submittedAs', 'preferredContact', 'status', 'createdAt'],
     listSearchableFields: ['name', 'email', 'message'],
     description: 'Messages sent through the website contact form.',
   },
@@ -40,9 +42,15 @@ export const Inquiries: CollectionConfig = {
     beforeChange: [
       ({ data, operation }) => {
         if (operation === 'create') {
-          if (!data.name?.trim()) data.name = 'Anonymous visitor'
           data.submittedAs = data.visitor ? 'account' : 'anonymous'
           if (data.consent?.contact && data.consent?.dataNotice) data.consent.consentedAt = new Date().toISOString()
+          // Presets carry their own bounds, so staff can sort and filter every enquiry by amount.
+          const preset = BUDGET_RANGES.find((r) => r.value === data.budgetRange && r.value !== 'custom')
+          if (preset) {
+            data.budgetMin = preset.min ?? null
+            data.budgetMax = preset.max ?? null
+          }
+          data.budget = budgetSummary(data.budgetRange, data.budgetMin, data.budgetMax) || undefined
         }
         return data
       },
@@ -83,16 +91,29 @@ export const Inquiries: CollectionConfig = {
     {
       type: 'row',
       fields: [
-        { name: 'name', type: 'text', ...visitorField },
+        {
+          name: 'name',
+          type: 'text',
+          ...visitorField,
+          // Required for new enquiries; enforced here (not as NOT NULL) so older rows stay valid.
+          validate: (value: unknown, { operation }: { operation?: string }) =>
+            operation === 'create' && !(typeof value === 'string' && value.trim()) ? 'Name is required.' : true,
+        },
         { name: 'email', type: 'email', required: true, ...visitorField },
         {
           name: 'phone',
           type: 'text',
           ...visitorField,
-          validate: (value: unknown, { data, operation }: { data: any; operation?: string }) =>
-            operation === 'create' && ['phone', 'either'].includes(data?.preferredContact) && !value
-              ? 'A phone number is needed when phone is a preferred contact method.'
-              : true,
+          // Checked on create only, so staff can still save (reply to) older enquiries.
+          validate: (value: unknown, { data, operation }: { data: any; operation?: string }) => {
+            if (operation !== 'create') return true
+            if (!value) {
+              return ['phone', 'either'].includes(data?.preferredContact)
+                ? 'A phone number is needed when phone is a preferred contact method.'
+                : true
+            }
+            return isIndianPhone(value) ? true : PHONE_ERROR
+          },
         },
       ],
     },
@@ -100,7 +121,12 @@ export const Inquiries: CollectionConfig = {
       type: 'row',
       fields: [
         { name: 'projectType', type: 'select', options: PROJECT_TYPES, ...visitorField },
-        { name: 'budget', type: 'select', options: BUDGETS, ...visitorField },
+        {
+          name: 'budgetRange',
+          type: 'select',
+          options: BUDGET_RANGES.map(({ value, label }) => ({ value, label })),
+          ...visitorField,
+        },
         {
           name: 'preferredContact',
           type: 'select',
@@ -113,6 +139,19 @@ export const Inquiries: CollectionConfig = {
           ],
           ...visitorField,
         },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'budget',
+          label: 'Budget (summary)',
+          type: 'text',
+          admin: { readOnly: true, description: 'Filled in automatically, e.g. “₹40 lakh – ₹60 lakh”.' },
+        },
+        { name: 'budgetMin', label: 'Budget from (₹)', type: 'number', min: 0, ...visitorField },
+        { name: 'budgetMax', label: 'Budget up to (₹)', type: 'number', min: 0, ...visitorField },
       ],
     },
     { name: 'message', type: 'textarea', required: true, ...visitorField },
